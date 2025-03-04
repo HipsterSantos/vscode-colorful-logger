@@ -1,0 +1,39 @@
+{
+  "name": "colorful-logger-vscode",
+  "displayName": "Colorful Logger Helper",
+  "description": "Enhances @hipstersantos/colorful-logger with hover previews and error diagnostics",
+  "version": "0.0.1",
+  "publisher": "hipstersantos",
+  "engines": {
+      "vscode": "^1.60.0"
+  },
+  "categories": [
+      "Other",
+      "Debuggers"
+  ],
+  "activationEvents": [
+      "onLanguage:javascript",
+      "onLanguage:typescript"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+      "languages": [
+          {
+              "id": "javascript",
+              "extensions": [".js"],
+              "aliases": ["JavaScript"]
+          },
+          {
+              "id": "typescript",
+              "extensions": [".ts"],
+              "aliases": ["TypeScript"]
+          }
+      ]
+  },
+  "dependencies": {
+      "@hipstersantos/colorful-logger": "^1.2.0"
+  },
+  "devDependencies": {
+      "vscode": "^1.1.37"
+  }
+}
