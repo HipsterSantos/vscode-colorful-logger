@@ -36,13 +36,21 @@
     "languages": [
       {
         "id": "javascript",
-        "extensions": [".js"],
-        "aliases": ["JavaScript"]
+        "extensions": [
+          ".js"
+        ],
+        "aliases": [
+          "JavaScript"
+        ]
       },
       {
         "id": "typescript",
-        "extensions": [".ts"],
-        "aliases": ["TypeScript"]
+        "extensions": [
+          ".ts"
+        ],
+        "aliases": [
+          "TypeScript"
+        ]
       }
     ]
   },

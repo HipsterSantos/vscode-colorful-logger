@@ -3,10 +3,12 @@ const vscode = require('vscode');
 
 function activate(context) {
     // Hover provider for log output previews and error details
+    console.log('Colorful Logger Helper activated');
     const hoverProvider = vscode.languages.registerHoverProvider(
         ['javascript', 'typescript'],
         {
             provideHover(document, position) {
+                console.log('Hover triggered at:', position.line);
                 const range = document.getWordRangeAtPosition(position, /\b(logger|log|authLog|paymentLog)\.(info|debug|warning|error|critical)\b/);
                 if (!range) return null;
 
@@ -29,7 +31,7 @@ function activate(context) {
                 }
 
                 // Simulate log output
-                const Logger = require('../src/logger.js');
+                const Logger = require('@hipstersantos/colorful-logger');
                 const logger = new Logger(loggerName === 'log' ? 'ExampleApp' : loggerName);
                 const output = logger.simulateLog(method.toUpperCase(), message, meta);
 
