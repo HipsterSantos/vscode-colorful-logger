@@ -2,11 +2,7 @@
 const vscode = require('vscode');
 
 function activate(context) {
-    // Diagnostic collection for errors
-    const diagnostics = vscode.languages.createDiagnosticCollection('colorful-logger');
-    context.subscriptions.push(diagnostics);
-
-    // Hover provider for log previews
+    // Hover provider for log output previews and error details
     const hoverProvider = vscode.languages.registerHoverProvider(
         ['javascript', 'typescript'],
         {
@@ -22,85 +18,47 @@ function activate(context) {
                 let message = '';
                 let meta = {};
 
-                // Parse arguments
+                // Parse arguments safely
                 try {
                     const argsStr = args.trim().replace(/;?\s*$/, '');
                     const argParts = argsStr.split(/,\s*(?={|$)/);
-                    message = eval(`(${argParts[0]})`); // Safely evaluate string literal
-                    if (argParts[1]) {
-                        meta = eval(`(${argParts[1]})`);
-                    }
+                    message = argParts[0] ? eval(`(${argParts[0]})`) : ''; // Evaluate string literal
+                    if (argParts[1]) meta = eval(`(${argParts[1]})`) || {};
                 } catch (e) {
                     return new vscode.Hover('Invalid log arguments');
                 }
 
                 // Simulate log output
-                const logger = new (require('../src/logger.js'))(loggerName === 'log' ? 'ExampleApp' : loggerName);
+                const Logger = require('../src/logger.js');
+                const logger = new Logger(loggerName === 'log' ? 'ExampleApp' : loggerName);
                 const output = logger.simulateLog(method.toUpperCase(), message, meta);
 
-                // Markdown for hover with highlighting
+                // Markdown for hover tooltip
                 const markdown = new vscode.MarkdownString();
-                markdown.appendMarkdown('**Expected Log Output:**\n\n');
+                markdown.appendMarkdown('**Log Preview:**\n\n');
                 markdown.appendCodeblock(output, 'plaintext');
-                markdown.appendMarkdown('\n**Highlights:**\n');
-                markdown.appendMarkdown(`- **Level**: ${method.toUpperCase()}\n`);
-                markdown.appendMarkdown(`- **Message**: ${message}\n`);
-                if (Object.keys(meta).length) markdown.appendMarkdown(`- **Metadata**: ${JSON.stringify(meta)}\n`);
+
+                // Highlight important parts
+                markdown.appendMarkdown('\n**Details:**\n');
+                markdown.appendMarkdown(`- **Level**: \`${method.toUpperCase()}\`\n`);
+                markdown.appendMarkdown(`- **Message**: \`${message}\`\n`);
+                if (Object.keys(meta).length) {
+                    markdown.appendMarkdown(`- **Metadata**: \`${JSON.stringify(meta)}\`\n`);
+                }
+
+                // Error-specific details and fixes
+                if (method === 'error' || method === 'critical') {
+                    markdown.appendMarkdown('\n**Error Analysis:**\n');
+                    if (meta.stack) {
+                        markdown.appendMarkdown(`- **Stack Trace**: \n\`\`\`\n${meta.stack}\n\`\`\`\n`);
+                    }
+                    markdown.appendMarkdown('- **Suggested Fix**: Wrap in try-catch or check input values.\n');
+                    markdown.appendMarkdown('```javascript\ntry {\n  ' + lineText.trim() + '\n} catch (e) {\n  logger.error("Handled error", e);\n}\n```');
+                }
 
                 return new vscode.Hover(markdown, range);
             }
         }
-    );
-
-    // Error detection and diagnostics
-    context.subscriptions.push(
-        vscode.workspace.onDidChangeTextDocument(event => {
-            const document = event.document;
-            diagnostics.clear();
-            const errors = [];
-
-            for (let i = 0; i < document.lineCount; i++) {
-                const line = document.lineAt(i).text;
-                const errorMatch = line.match(/(logger|log|authLog|paymentLog)\.error\((.*)\)/);
-                if (errorMatch) {
-                    const [, loggerName, args] = errorMatch;
-                    const range = new vscode.Range(i, line.indexOf('error'), i, line.length);
-                    const diagnostic = new vscode.Diagnostic(
-                        range,
-                        'Potential error logged here',
-                        vscode.DiagnosticSeverity.Warning
-                    );
-
-                    let message = '';
-                    let meta = {};
-                    try {
-                        const argsStr = args.trim().replace(/;?\s*$/, '');
-                        const argParts = argsStr.split(/,\s*(?={|$)/);
-                        message = eval(`(${argParts[0]})`);
-                        if (argParts[1]) meta = eval(`(${argParts[1]})`);
-                    } catch (e) {
-                        diagnostic.message = 'Invalid error arguments';
-                    }
-
-                    diagnostic.relatedInformation = [
-                        new vscode.DiagnosticRelatedInformation(
-                            new vscode.Location(document.uri, range),
-                            `Error: ${message}${meta.stack ? '\nStack: ' + meta.stack : ''}`
-                        )
-                    ];
-
-                    // Suggest fix if meta is an Error object
-                    if (meta instanceof Error || meta.stack) {
-                        diagnostic.code = 'suggest-fix';
-                        diagnostic.message += '\n\n**Suggested Fix**: Check the error source or add try-catch.';
-                    }
-
-                    errors.push(diagnostic);
-                }
-            }
-
-            diagnostics.set(document.uri, errors);
-        })
     );
 
     context.subscriptions.push(hoverProvider);
